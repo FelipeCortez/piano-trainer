@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>
+    var midi, data;
+    // request MIDI access
+    if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess({
+            sysex: false
+        }).then(onMIDISuccess, onMIDIFailure);
+    } else {
+        alert("No MIDI support in your browser.");
+    }
+
+    // midi functions
+    function onMIDISuccess(midiAccess) {
+        // when we get a succesful response, run this code
+        midi = midiAccess; // this is our raw MIDI data, inputs, outputs, and sysex status
+
+        var inputs = midi.inputs.values();
+        // loop over all available inputs and listen for any MIDI input
+        for (var input = inputs.next(); input && !input.done; input = inputs.next()) {
+            // each time there is a midi message call the onMIDIMessage function
+            input.value.onmidimessage = onMIDIMessage;
+        }
+    }
+
+    function onMIDIFailure(error) {
+        // when we get a failed response, run this code
+        console.log("No access to MIDI devices or your browser doesn't support WebMIDI API. Please use WebMIDIAPIShim " + error);
+    }
+
+    function midiNote(noteValue) {
+        notes = ["C",
+                "Db",
+                "D",
+                "Eb",
+                "E",
+                "F",
+                "Gb",
+                "G",
+                "Ab",
+                "A",
+                "Bb",
+                "B"];
+
+        note = {midi: noteValue, pitch: notes[noteValue % 12], octave: Math.floor(noteValue / 12) - 2};
+        note.string = note.pitch + note.octave;
+        return note;
+    }
+
+    notesHeld = [];
+
+    function inversion(notesHeld) {
+        notesList = notesHeld.sort().map(midiNote)
+        intervalList = intervals(notesHeld);
+
+        if(intervalList.toString() == [4, 3].toString()) {
+            return notesList[0].pitch + " major";
+        } else if(intervalList.toString() == [3, 5].toString()) {
+            return notesList[2].pitch + " major (1st inversion)";
+        } else if(intervalList.toString() == [5, 4].toString()) {
+            return notesList[1].pitch + " major (2nd inversion)";
+        } else if(intervalList.toString() == [3, 4].toString()) {
+            return notesList[0].pitch + " minor";
+        } else if(intervalList.toString() == [4, 5].toString()) {
+            return notesList[2].pitch + " minor (1st inversion)";
+        } else if(intervalList.toString() == [5, 3].toString()) {
+            return notesList[1].pitch + " minor (2nd inversion)";
+        }
+    }
+
+    function intervals(notesHeld) {
+        notesMidi = notesHeld.sort().map(midiNote).map(note => note.midi);
+
+        intervalList = [];
+        for(i = 0; i < notesMidi.length - 1; ++i) {
+            intervalList.push(notesMidi[i + 1] - notesMidi[i]);
+        }
+
+        return intervalList;
+    }
+
+    function detectInversion(notesHeld) {
+        inversionElement = document.getElementById("inversion");
+
+        if(notesHeld.length == 3) {
+            inv = inversion(notesHeld);
+            if(inv) {
+                inversionElement.innerHTML = inversion(notesHeld);
+            } else {
+                inversionElement.innerHTML = "";
+            }
+        } else {
+            inversionElement.innerHTML = "";
+        }
+    }
+
+    function onMIDIMessage(message) {
+        data = message.data; // this gives us our [command/channel, note, velocity] data.
+        if(data[0] == 144) {
+            notesHeld.push(data[1]);
+        } else if(data[0] == 128) {
+            notesHeld.splice(notesHeld.indexOf(data[1]), 1);
+        }
+
+        notesElement = document.getElementById("notes");
+        notesElement.innerHTML = notesHeld.sort().map(midiNote).map(a => a.string);
+        detectInversion(notesHeld);
+    }
+    </script>
+</head>
+<body>
+    <h1>Notes</h1>
+    <p id="notes"></p>
+    <p id="inversion"></p>
+</body>
+</html>
