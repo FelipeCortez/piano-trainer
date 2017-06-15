@@ -68,6 +68,7 @@ function midiNote(noteValue) {
     note = {midi: noteValue, pitch: notes[noteValue % 12], octave: Math.floor(noteValue / 12) - 2};
     note.string = note.pitch + note.octave;
     note.vex_string = note.pitch.toLowerCase() + "/" + (note.octave + 1);
+    note.acc = note.pitch[1];
     return note;
 }
 
@@ -120,19 +121,25 @@ function detectInversion(notesHeld) {
 
 function drawNote(note) {
     const group = context.openGroup();
-    visibleNoteGroups.push(group);
-
+    visibleNoteGroups[note] = group;
     const vex_note = new VF.StaveNote({clef: "treble",
                                        keys: [midiNote(note).vex_string],
                                        duration: "q" })
                         .setContext(context)
                         .setStave(stave);
+
+    acc = midiNote(note).acc
+    if(acc) vex_note.addAccidental(0, new VF.Accidental(acc));
     tickContext.addTickable(vex_note)
     tickContext.preFormat().setX(50);
     vex_note.draw();
-
-
     context.closeGroup();
+}
+
+function removeNote(note) {
+    visibleNoteGroups[note].remove();
+    //context.removeGroup(group);
+    //console.log(context);
 }
 
 function onMIDIMessage(message) {
@@ -141,8 +148,8 @@ function onMIDIMessage(message) {
         notesHeld.push(data[1]);
         drawNote(data[1]);
     } else if(data[0] == 128) {
+        removeNote(data[1]);
         notesHeld.splice(notesHeld.indexOf(data[1]), 1);
-        visibleNoteGroups.shift();
     }
 
     notesElement = document.getElementById("notes");
