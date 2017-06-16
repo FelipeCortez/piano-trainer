@@ -3,14 +3,62 @@
 <head>
     <title>Piano trainer</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link rel="stylesheet" href="bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Libre+Bodoni:400/Linux+Libertine:400,400i,600">
 </head>
 <body>
-    <h1>Notes</h1>
-    <div id="boo"></div>
-    <p id="notes"></p>
-    <p id="inversion"></p>
+    <div class="container">
+    <div class="header clearfix">
+        <h1>Piano</h1>
+    </div>
+        <div class="row">
+        <div class="col-md-6">
+            <div id="boo"></div>
+        </div>
+        <div class="col-md-6">
+            <h3 id="notes">-</h3>
+            <h3 id="inversion">-</h3>
+        </div>
+        </div>
+
+        <h2>Inversões</h3>
+        <h3>Maior</h4>
+        <h4>Normal</h5>
+        <button id="major_normal" class="btn btn-default">Play</button>
+        <ul>
+            <li>Keyboard cat</li>
+        </ul>
+        <h4>Primeira inversão</h5>
+        <ul>
+            <li>Melody's Echo Chamber - I Follow You</li>
+        </ul>
+        <h4>Segunda inversão</h5>
+        <ul>
+            <li>Jonathan Coulton - Still Alive</li>
+        </ul>
+
+        <h3>Menor</h4>
+        <h4>Normal</h5>
+        <ul>
+            <li>Metronomy - Monstrous</li>
+        </ul>
+        <h4>Primeira inversão</h5>
+        <ul>
+            <li>The Beach Boys - Good to My Baby</li>
+            <li>Vulfpeck - Fugue State</li>
+            <li>Roberta Sá - Altos e Baixos</li>
+        </ul>
+        <h4>Segunda inversão</h5>
+        <ul>
+            <li>Moonlight Sonata</li>
+        </ul>
+
+        <h3>Diminuto</h4>
+        <h3>Aumentado</h4>
+
+    </div>
 
     <script src="soundfont-player.min.js"></script>
     <script src="vexflow-min.js"></script>
