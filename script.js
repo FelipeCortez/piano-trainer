@@ -72,47 +72,104 @@ function midiNote(noteValue) {
     return note;
 }
 
-notesHeld = [];
 
-/*
- * TODO
-function getInversion(intervalList) {
-    inversion = {intervals: [4, 3],
-                 name: "major",
-                 root: 0}
-    inversion = {intervals: [3, 5],
-                 name: "major (1st inversion)",
-                 root: 0}
-}
-*/
 
-function inversion(notesHeld) {
-    notesList = notesHeld.sort().map(midiNote)
-    intervalList = intervals(notesHeld);
+function generateInversionMap() {
+    /*
+    var inversions = [
+        {intervals: [4, 3],
+         name: "major",
+         root: 0},
+        {intervals: invertNotes([4, 3], 1),
+         name: "major (1st inversion)",
+         root: 2},
+        {intervals: invertNotes([4, 3], 2),
+         name: "major (2nd inversion)",
+         root: 1},
+        {intervals: [3, 4],
+         name: "minor",
+         root: 0},
+        {intervals: invertNotes([3, 4], 1),
+         name: "minor (1st inversion)",
+         root: 2},
+        {intervals: invertNotes([3, 4], 2),
+         name: "minor (2nd inversion)",
+         root: 1}
+    ]
+    */
 
-    if(intervalList.toString() == [4, 3].toString()) {
-        return notesList[0].pitch + " major";
-    } else if(intervalList.toString() == [3, 5].toString()) {
-        return notesList[2].pitch + " major (1st inversion)";
-    } else if(intervalList.toString() == [5, 4].toString()) {
-        return notesList[1].pitch + " major (2nd inversion)";
-    } else if(intervalList.toString() == [3, 4].toString()) {
-        return notesList[0].pitch + " minor";
-    } else if(intervalList.toString() == [4, 5].toString()) {
-        return notesList[2].pitch + " minor (1st inversion)";
-    } else if(intervalList.toString() == [5, 3].toString()) {
-        return notesList[1].pitch + " minor (2nd inversion)";
-    } else if(intervalList.toString() == [3, 3].toString()) {
-        return notesList[0].pitch + " diminished";
-    } else if(intervalList.toString() == [3, 6].toString()) {
-        return notesList[1].pitch + " diminished (1st inversion)";
-    } else if(intervalList.toString() == [6, 3].toString()) {
-        return notesList[2].pitch + " diminished (2nd inversion)";
-    } else if(intervalList.toString() == [4, 4].toString()) {
-        return notesList[0].pitch + " augmented";
+    var inversions = [
+        {intervals: [4, 3],
+         name: "major",
+         root: 0},
+        {intervals: [3, 4],
+         name: "minor",
+         root: 0},
+        {intervals: [3, 3],
+         name: "diminished",
+         root: 0},
+        {intervals: [4, 3, 4],
+         name: "maj7",
+         root: 0},
+        {intervals: [4, 3, 3],
+         name: "7",
+         root: 0},
+        {intervals: [3, 4, 3],
+         name: "min7",
+         root: 0},
+        {intervals: [3, 3, 3],
+         name: "half dim",
+         root: 0},
+        {intervals: [3, 3, 4],
+         name: "dim",
+         root: 0},
+        {intervals: [4, 4],
+         name: "augmented",
+         root: 0}
+    ]
+
+    for(i = inversions.length - 4; i >= 0; --i) {
+        var inversion = inversions[i];
+        for(j = 0; j < inversion.intervals.length; ++j) {
+            inversions.push({intervals: invertNotes(inversion.intervals, j + 1),
+                             name: inversion.name + " (inv" + (j + 1) + ")",
+                             root: inversion.intervals.length - (j)});
+        }
     }
 
-    return "-";
+    var inversionMap = [];
+    for(i = 0; i < inversions.length; ++i) {
+        var key = inversions[i].intervals.join("_");
+        inversionMap[key] = inversions[i];
+    }
+
+    return inversionMap;
+}
+
+function invertNotes(intervalList, n = 1) {
+    if(n < 0) {
+        throw "Invalid inversion number"
+    } else if(n == 0) {
+        return intervalList;
+    } else {
+        var inverted = intervalList.slice(1);
+        sum = intervalList.reduce((pv, cv) => pv + cv, 0);
+        inverted.push(12 - sum);
+        return invertNotes(inverted,
+                           n - 1);
+    }
+}
+
+function getInversion(notesHeld) {
+    var notesList = notesHeld.sort().map(midiNote)
+    var intervalList = intervals(notesHeld);
+    var inv = inversionMap[intervalList.join("_")];
+
+    if(inv) {
+        return notesList[inv.root].pitch + " " + inv.name;
+    } else {
+        return "-";
+    }
 }
 
 function intervals(notesHeld) {
@@ -129,10 +186,10 @@ function intervals(notesHeld) {
 function detectInversion(notesHeld) {
     inversionElement = document.getElementById("inversion");
 
-    if(notesHeld.length == 3) {
-        inv = inversion(notesHeld);
+    if(notesHeld.length >= 3) {
+        inv = getInversion(notesHeld);
         if(inv) {
-            inversionElement.innerHTML = inversion(notesHeld);
+            inversionElement.innerHTML = inv;
         } else {
             inversionElement.innerHTML = "-";
         }
@@ -146,7 +203,7 @@ function drawNote(note) {
     visibleNoteGroups[note] = group;
     const vex_note = new VF.StaveNote({clef: "treble",
                                        keys: [midiNote(note).vex_string],
-                                       duration: "q" })
+                                       duration: "w" })
                         .setContext(context)
                         .setStave(stave);
 
@@ -160,8 +217,6 @@ function drawNote(note) {
 
 function removeNote(note) {
     visibleNoteGroups[note].remove();
-    //context.removeGroup(group);
-    //console.log(context);
 }
 
 function onMIDIMessage(message) {
@@ -197,15 +252,20 @@ Soundfont.instrument(ac, 'acoustic_grand_piano').then(function (piano) {
     })
 })
 
-document.getElementById("major_normal").addEventListener("click", function(event) {
-    Soundfont.instrument(ac, 'acoustic_grand_piano').then(function (clavinet) {
-    //clavinet.play('C4').stop(ac.currentTime + 0.5)
-    //clavinet.play('C4', ac.currentTime, { duration: 0.5})
-    clavinet.schedule(0,
-                      [{time: 0,   note: 'C3'},
-                       {time: 0.3, note: 'E3'},
-                       {time: 0.6, note: 'G3'},
-                       {time: 0.9, note: 'E3'},
-                       {time: 1.2, note: 'C3'}]);
+function playNotes(noteList, duration = 0.25) {
+    Soundfont.instrument(ac, 'acoustic_grand_piano').then(function (piano) {
+        var t = 0;
+        for(i = 0; i < noteList.length; ++i) {
+            piano.play(noteList[i], ac.currentTime + t, { duration: 0.5})
+            t += duration;
+        }
     });
+}
+
+document.getElementById("major_normal").addEventListener("click", function() {
+    playNotes(["C3", "E3", "G3", "E3", "C3"]);
 });
+
+notesHeld = [];
+inversionMap = generateInversionMap();
+
